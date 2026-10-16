@@ -104,6 +104,7 @@
     <string name="player_other">Misc</string>
     <string name="player_full_date">Precise date in description</string>
     <string name="open_channel">Open channel</string>
+    <string name="open_channel_position">Go to position in channel</string>
     <string name="open_playlist">Open playlist</string>
     <string name="not_interested">Not interested</string>
     <string name="not_recommend_channel">Don\'t recommend channel</string>

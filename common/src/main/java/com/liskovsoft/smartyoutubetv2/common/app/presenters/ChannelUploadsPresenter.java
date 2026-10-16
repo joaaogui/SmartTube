@@ -26,6 +26,7 @@ import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager.OnComplete;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager.OnError;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager.OnMediaGroup;
+import com.liskovsoft.smartyoutubetv2.common.utils.LoadingManager;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -40,6 +41,7 @@ public class ChannelUploadsPresenter extends BasePresenter<ChannelUploadsView> i
     private Disposable mUpdateAction;
     private Disposable mScrollAction;
     private Video mChannel;
+    private Video mPendingSelection;
     private MediaGroup mPendingGroup;
     private VideoGroup mBaseGroup;
 
@@ -79,6 +81,7 @@ public class ChannelUploadsPresenter extends BasePresenter<ChannelUploadsView> i
         // Otherwise keep the cache to easily restore in case activity is killed by the system.
         disposeActions();
         mChannel = null;
+        mPendingSelection = null;
         mPendingGroup = null;
         mBaseGroup = null;
     }
@@ -146,6 +149,58 @@ public class ChannelUploadsPresenter extends BasePresenter<ChannelUploadsView> i
 
         if (getView() != null) {
             update(item);
+        }
+    }
+
+    /**
+     * Opens the channel uploads of the given video and scrolls to that video
+     */
+    public void openChannelAt(Video video) {
+        if (video == null) {
+            return;
+        }
+
+        if (video.channelId != null) {
+            openChannelAt(video, video.channelId);
+            return;
+        }
+
+        LoadingManager.showLoading(getContext(), true);
+        getServiceManager().loadMetadata(video, metadata -> {
+                    LoadingManager.showLoading(getContext(), false);
+                    video.channelId = metadata.getChannelId();
+                    openChannelAt(video, video.channelId);
+                },
+                e -> LoadingManager.showLoading(getContext(), false),
+                () -> LoadingManager.showLoading(getContext(), false));
+    }
+
+    private void openChannelAt(Video video, String channelId) {
+        if (channelId == null) {
+            return;
+        }
+
+        Video channel = new Video();
+        channel.channelId = channelId;
+        channel.title = video.getAuthor();
+
+        clear();
+
+        mChannel = channel;
+        mPendingSelection = video;
+
+        getViewManager().startView(ChannelUploadsView.class);
+
+        if (getView() != null) {
+            applyPendingSelection();
+            update(channel);
+        }
+    }
+
+    private void applyPendingSelection() {
+        if (mPendingSelection != null && getView() != null) {
+            getView().selectItem(mPendingSelection);
+            mPendingSelection = null;
         }
     }
 
@@ -224,6 +279,7 @@ public class ChannelUploadsPresenter extends BasePresenter<ChannelUploadsView> i
                         },
                         error -> {
                             Log.e(TAG, "continueGroup error: %s", error.getMessage());
+                            LoadingManager.showLoading(getContext(), false);
                             if (getView() != null) {
                                 getView().showProgressBar(false);
                             }
@@ -338,6 +394,7 @@ public class ChannelUploadsPresenter extends BasePresenter<ChannelUploadsView> i
             getView().clear();
         }
         mChannel = null;
+        mPendingSelection = null;
         mPendingGroup = null;
         mBaseGroup = null;
     }
@@ -349,9 +406,11 @@ public class ChannelUploadsPresenter extends BasePresenter<ChannelUploadsView> i
 
         if (mPendingGroup != null) {
             getView().clear();
+            applyPendingSelection();
             update(mPendingGroup);
         } else if (mChannel != null) {
             getView().clear();
+            applyPendingSelection();
             update(mChannel);
         }
     }

@@ -59,6 +59,7 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
     private boolean mIsRemoveFromHistoryButtonEnabled;
     private boolean mIsRemoveFromSubscriptionsButtonEnabled;
     private boolean mIsOpenChannelButtonEnabled;
+    private boolean mIsOpenChannelPositionButtonEnabled;
     private boolean mIsOpenChannelUploadsButtonEnabled;
     private boolean mIsSubscribeButtonEnabled;
     private boolean mIsShareLinkButtonEnabled;
@@ -306,6 +307,24 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
                 UiOptionItem.from(getContext().getString(
                         mVideo.isPlaylistAsChannel() ? R.string.open_playlist : R.string.open_channel), optionItem -> {
                     MediaServiceManager.chooseChannelPresenter(getContext(), mVideo);
+                    mDialogPresenter.closeDialog();
+                }));
+    }
+
+    private void appendOpenChannelPositionButton() {
+        if (!mIsOpenChannelPositionButtonEnabled) {
+            return;
+        }
+
+        // Only regular uploads are listed in the channel Videos tab
+        if (mVideo == null || !mVideo.hasVideo() || mVideo.isPlaylistAsChannel() || mVideo.isMix() || mVideo.isShorts || mVideo.belongsToShorts()
+                || mVideo.isLive || mVideo.isUpcoming || !ChannelPresenter.canOpenChannel(mVideo)) {
+            return;
+        }
+
+        mDialogPresenter.appendSingleButton(
+                UiOptionItem.from(getContext().getString(R.string.open_channel_position), optionItem -> {
+                    ChannelUploadsPresenter.instance(getContext()).openChannelAt(mVideo);
                     mDialogPresenter.closeDialog();
                 }));
     }
@@ -998,6 +1017,7 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
         mIsOpenPlaylistButtonEnabled = true;
         mIsReturnToBackgroundVideoEnabled = true;
         mIsOpenChannelButtonEnabled = mainUIData.isMenuItemEnabled(MainUIData.MENU_ITEM_OPEN_CHANNEL);
+        mIsOpenChannelPositionButtonEnabled = mainUIData.isMenuItemEnabled(MainUIData.MENU_ITEM_OPEN_CHANNEL_POSITION);
         mIsAddToRecentPlaylistButtonEnabled = mainUIData.isMenuItemEnabled(MainUIData.MENU_ITEM_RECENT_PLAYLIST);
         mIsAddToPlaybackQueueButtonEnabled = mainUIData.isMenuItemEnabled(MainUIData.MENU_ITEM_ADD_TO_QUEUE);
         mIsPlayNextButtonEnabled = mainUIData.isMenuItemEnabled(MainUIData.MENU_ITEM_PLAY_NEXT);
@@ -1047,6 +1067,7 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
         mMenuMapping.put(MainUIData.MENU_ITEM_PLAY_NEXT, new MenuAction(this::appendPlayNextButton, false));
         mMenuMapping.put(MainUIData.MENU_ITEM_SHOW_QUEUE, new MenuAction(this::appendShowPlaybackQueueButton, false));
         mMenuMapping.put(MainUIData.MENU_ITEM_OPEN_CHANNEL, new MenuAction(this::appendOpenChannelButton, false));
+        mMenuMapping.put(MainUIData.MENU_ITEM_OPEN_CHANNEL_POSITION, new MenuAction(this::appendOpenChannelPositionButton, false));
         mMenuMapping.put(MainUIData.MENU_ITEM_OPEN_PLAYLIST, new MenuAction(this::appendOpenPlaylistButton, false));
         mMenuMapping.put(MainUIData.MENU_ITEM_SUBSCRIBE, new MenuAction(this::appendSubscribeButton, false));
         mMenuMapping.put(MainUIData.MENU_ITEM_EXCLUDE_FROM_CONTENT_BLOCK, new MenuAction(this::appendToggleExcludeFromContentBlockButton, false));
